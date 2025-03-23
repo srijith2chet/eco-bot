@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,10 +15,9 @@ const Results = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const MODEL_NAME = "ecobot.pt"; // Your pretrained YOLOv8 model
+
   useEffect(() => {
-    // In a real app, you would get the results from your backend
-    // Here we're simulating by getting the image from sessionStorage
-    
     const storedImage = sessionStorage.getItem('uploadedImage');
     
     if (!storedImage) {
@@ -27,16 +25,12 @@ const Results = () => {
       return;
     }
     
-    // Simulate backend processing delay
     const timer = setTimeout(() => {
       setResultImage(storedImage);
       
-      // Simulate getting GPS data (would come from backend in real app)
-      // Randomly decide whether to have GPS or not for demo purposes
       const hasGps = Math.random() > 0.3;
       
       if (hasGps) {
-        // Generate random coordinates for demo
         setGpsCoordinates({
           latitude: 25.0 + (Math.random() * 10),
           longitude: -80.0 + (Math.random() * 10),
@@ -133,7 +127,7 @@ const Results = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Detection Model</span>
-                        <span>YOLOv8</span>
+                        <span>{MODEL_NAME}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Confidence</span>
