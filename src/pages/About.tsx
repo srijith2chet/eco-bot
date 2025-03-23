@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { GitHub, Mail, ExternalLink } from 'lucide-react';
+import { Github, Mail, ExternalLink } from 'lucide-react';
 import OceanBackground from '@/components/OceanBackground';
 import PageTransition from '@/components/PageTransition';
 import { Button } from '@/components/ui/button';
@@ -91,7 +90,7 @@ const About = () => {
               <h2 className="text-lg font-medium mb-4">Get in Touch</h2>
               <div className="flex justify-center space-x-4">
                 <Button variant="outline" size="sm" className="glass-button">
-                  <GitHub className="mr-2 h-4 w-4" /> GitHub
+                  <Github className="mr-2 h-4 w-4" /> GitHub
                 </Button>
                 <Button variant="outline" size="sm" className="glass-button">
                   <Mail className="mr-2 h-4 w-4" /> Contact
