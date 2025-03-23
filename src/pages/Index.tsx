@@ -9,6 +9,8 @@ import PageTransition from '@/components/PageTransition';
 import ImageUpload from '@/components/ImageUpload';
 import { cn } from '@/lib/utils';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Index = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,30 +33,44 @@ const Index = () => {
 
     setIsSubmitting(true);
 
-    // Simulate API call to backend
     try {
-      // In a real implementation, this would be a form submission to your Flask backend
-      // which would process the image and return results
+      // Create form data to send to the backend
+      const formData = new FormData();
+      formData.append('image', selectedFile);
       
-      // Simulated processing delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call Flask backend API
+      const response = await fetch(`${API_URL}/api/detect`, {
+        method: 'POST',
+        body: formData,
+      });
       
-      // For demo purposes, we'll just navigate to results with some query params
-      // In a real app, you'd send the file to your backend and process the response
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64Image = reader.result as string;
-        // Store the image in sessionStorage (not ideal for large images in production)
-        sessionStorage.setItem('uploadedImage', base64Image);
-        navigate('/results');
-      };
-      reader.readAsDataURL(selectedFile);
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to process image');
+      }
+      
+      // Store results in sessionStorage
+      sessionStorage.setItem('detectionResults', JSON.stringify({
+        resultImage: data.image,
+        gpsCoordinates: data.gps_coordinates,
+        detections: data.detections,
+        count: data.count,
+        averageConfidence: data.average_confidence
+      }));
+      
+      // Navigate to results page
+      navigate('/results');
       
     } catch (error) {
       console.error('Error processing image:', error);
       toast({
         title: "Processing failed",
-        description: "There was an error processing your image. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error processing your image. Please try again.",
         variant: "destructive",
       });
     } finally {

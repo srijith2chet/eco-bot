@@ -11,38 +11,38 @@ import { useToast } from '@/components/ui/use-toast';
 const Results = () => {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [gpsCoordinates, setGpsCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [detections, setDetections] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [confidence, setConfidence] = useState<number>(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const MODEL_NAME = "ecobot.pt"; // Your pretrained YOLOv8 model
 
   useEffect(() => {
-    const storedImage = sessionStorage.getItem('uploadedImage');
+    const resultsData = sessionStorage.getItem('detectionResults');
     
-    if (!storedImage) {
+    if (!resultsData) {
       navigate('/');
       return;
     }
     
-    const timer = setTimeout(() => {
-      setResultImage(storedImage);
+    try {
+      const results = JSON.parse(resultsData);
       
-      const hasGps = Math.random() > 0.3;
+      const timer = setTimeout(() => {
+        setResultImage(results.resultImage);
+        setGpsCoordinates(results.gpsCoordinates);
+        setDetections(results.detections || []);
+        setConfidence(results.averageConfidence * 100 || 0);
+        setIsLoading(false);
+      }, 1000);
       
-      if (hasGps) {
-        setGpsCoordinates({
-          latitude: 25.0 + (Math.random() * 10),
-          longitude: -80.0 + (Math.random() * 10),
-        });
-      } else {
-        setGpsCoordinates(null);
-      }
-      
-      setIsLoading(false);
-    }, 1500);
-    
-    return () => clearTimeout(timer);
+      return () => clearTimeout(timer);
+    } catch (error) {
+      console.error('Error parsing results:', error);
+      navigate('/');
+    }
   }, [navigate]);
 
   const handleDownload = () => {
@@ -131,11 +131,11 @@ const Results = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Confidence</span>
-                        <span>78%</span>
+                        <span>{confidence.toFixed(2)}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Items Detected</span>
-                        <span>3</span>
+                        <span>{detections.length}</span>
                       </div>
                     </div>
                   )}
