@@ -6,12 +6,14 @@ import { cn } from '@/lib/utils';
 interface ResultsDisplayProps {
   resultImage: string | null;
   gpsCoordinates: { latitude: number; longitude: number } | null;
+  plasticLevel?: 'low' | 'medium' | 'high';
   isLoading?: boolean;
 }
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   resultImage,
   gpsCoordinates,
+  plasticLevel = 'low',
   isLoading = false,
 }) => {
   if (isLoading) {
@@ -48,8 +50,18 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
         "glass-card rounded-xl p-5 flex items-center space-x-4",
         "animate-fade-up animate-delay-300"
       )}>
-        <div className="bg-primary/20 p-2.5 rounded-lg">
-          <MapPin className="w-5 h-5 text-primary" />
+        <div className={cn(
+          "p-2.5 rounded-lg",
+          plasticLevel === 'low' ? "bg-green-500/20" : 
+          plasticLevel === 'medium' ? "bg-orange-500/20" : 
+          "bg-red-500/20"
+        )}>
+          <MapPin className={cn(
+            "w-5 h-5",
+            plasticLevel === 'low' ? "text-green-500" : 
+            plasticLevel === 'medium' ? "text-orange-500" : 
+            "text-red-500"
+          )} />
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-medium">GPS Location</h3>

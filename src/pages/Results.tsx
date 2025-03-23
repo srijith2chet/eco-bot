@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ const Results = () => {
   const [detections, setDetections] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [confidence, setConfidence] = useState<number>(0);
+  const [plasticLevel, setPlasticLevel] = useState<'low' | 'medium' | 'high'>('low');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -34,7 +36,20 @@ const Results = () => {
         setResultImage(results.resultImage);
         setGpsCoordinates(results.gpsCoordinates);
         setDetections(results.detections || []);
-        setConfidence(results.averageConfidence * 100 || 0);
+        
+        const detectionCount = results.detections?.length || 0;
+        const avgConfidence = results.averageConfidence * 100 || 0;
+        setConfidence(avgConfidence);
+        
+        // Determine plastic level based on number of detections
+        let level: 'low' | 'medium' | 'high' = 'low';
+        if (detectionCount >= 5) {
+          level = 'high';
+        } else if (detectionCount >= 2) {
+          level = 'medium';
+        }
+        setPlasticLevel(level);
+        
         setIsLoading(false);
       }, 1000);
       
@@ -105,6 +120,7 @@ const Results = () => {
                 <ResultsDisplay
                   resultImage={resultImage}
                   gpsCoordinates={gpsCoordinates}
+                  plasticLevel={plasticLevel}
                   isLoading={isLoading}
                 />
               </div>
@@ -137,6 +153,18 @@ const Results = () => {
                         <span className="text-muted-foreground">Items Detected</span>
                         <span>{detections.length}</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Plastic Level</span>
+                        <span className={
+                          plasticLevel === 'low' ? "text-green-500" : 
+                          plasticLevel === 'medium' ? "text-orange-500" : 
+                          "text-red-500"
+                        }>
+                          {plasticLevel === 'low' ? "Low" : 
+                           plasticLevel === 'medium' ? "Medium" : 
+                           "High"}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -145,6 +173,8 @@ const Results = () => {
                   <MapDisplay 
                     latitude={gpsCoordinates.latitude} 
                     longitude={gpsCoordinates.longitude}
+                    plasticLevel={plasticLevel}
+                    className="h-52"
                   />
                 )}
                 
