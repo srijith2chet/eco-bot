@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Image, Info, Menu, X } from 'lucide-react';
+import { Home, Image, Info, Menu, X, Globe } from 'lucide-react';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +27,7 @@ const Navigation = () => {
   const links = [
     { name: 'Home', path: '/', icon: <Home className="w-4 h-4" /> },
     { name: 'Results', path: '/results', icon: <Image className="w-4 h-4" /> },
+    { name: 'Global Map', path: '/global-map', icon: <Globe className="w-4 h-4" /> },
     { name: 'About', path: '/about', icon: <Info className="w-4 h-4" /> }
   ];
   
