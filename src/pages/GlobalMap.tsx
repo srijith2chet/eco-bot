@@ -66,13 +66,13 @@ const GlobalMap = () => {
       const records = getAllDetectionRecords();
       
       if (records.length > 0) {
-        // Prepare GeoJSON data
+        // Prepare GeoJSON data - Fix the type to be the literal string "FeatureCollection"
         const geojsonData = {
-          type: 'FeatureCollection',
+          type: "FeatureCollection" as const, // Use a const assertion to ensure the type is exactly "FeatureCollection"
           features: records.map(record => ({
-            type: 'Feature',
+            type: "Feature" as const,
             geometry: {
-              type: 'Point',
+              type: "Point" as const,
               coordinates: [record.coordinates.longitude, record.coordinates.latitude]
             },
             properties: {
