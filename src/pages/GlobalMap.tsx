@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -15,8 +14,8 @@ const GlobalMap = () => {
   const [recordsCount, setRecordsCount] = useState(0);
   
   useEffect(() => {
-    const records = getAllDetectionRecords();
-    setRecordsCount(records.length);
+    const allRecords = getAllDetectionRecords();
+    setRecordsCount(allRecords.length);
     
     if (!mapRef.current) return;
     
@@ -48,12 +47,10 @@ const GlobalMap = () => {
       position: 'bottomright'
     }).addAttribution('© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors').addTo(map);
     
-    // Add points from localStorage
-    const records = getAllDetectionRecords();
-    
-    if (records.length > 0) {
+    // Add points from localStorage - using the already fetched records
+    if (allRecords.length > 0) {
       // Create heatmap data points
-      const heatData = records.map(record => {
+      const heatData = allRecords.map(record => {
         // Set intensity based on plastic level
         const intensity = record.plasticLevel === 'high' ? 1 :
                         record.plasticLevel === 'medium' ? 0.6 : 0.3;
@@ -66,7 +63,7 @@ const GlobalMap = () => {
       });
       
       // Add markers for each detection point
-      records.forEach(record => {
+      allRecords.forEach(record => {
         const markerColor = record.plasticLevel === 'high' ? '#ea384c' :
                           record.plasticLevel === 'medium' ? '#F97316' : '#4ade80';
         
@@ -81,32 +78,18 @@ const GlobalMap = () => {
         }).addTo(map);
       });
       
-      // Add heatmap layer if we have many points (using a conditional import)
-      if (records.length > 5) {
-        // We'll use a simple clustering for now since leaflet-heat would require additional setup
-        const markers = L.markerClusterGroup({
-          disableClusteringAtZoom: 8,
-          spiderfyOnMaxZoom: false,
-          showCoverageOnHover: false,
-          zoomToBoundsOnClick: true,
-          maxClusterRadius: 50,
-          iconCreateFunction: function(cluster) {
-            const count = cluster.getChildCount();
-            return L.divIcon({
-              html: `<div class="cluster-marker">${count}</div>`,
-              className: 'cluster-marker-container',
-              iconSize: L.point(40, 40)
-            });
-          }
-        });
-        
-        records.forEach(record => {
-          markers.addLayer(L.marker([record.coordinates.latitude, record.coordinates.longitude], {
+      // Add clustering when we have many points
+      if (allRecords.length > 5) {
+        // Instead of using markerClusterGroup, we'll just use standard markers
+        // as the clustering plugin is not available by default in Leaflet
+        const markers = allRecords.map(record => {
+          return L.marker([record.coordinates.latitude, record.coordinates.longitude], {
             opacity: 0.6
-          }));
+          }).addTo(map);
         });
         
-        map.addLayer(markers);
+        // If we need clustering in the future, we would need to add the leaflet.markercluster plugin
+        // and initialize it here
       }
     }
     
