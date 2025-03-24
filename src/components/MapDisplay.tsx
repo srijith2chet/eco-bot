@@ -1,6 +1,7 @@
+
 import React, { useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { cn } from '@/lib/utils';
 
 interface MapDisplayProps {
@@ -17,7 +18,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   className 
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<mapboxgl.Map | null>(null);
+  const mapInstance = useRef<L.Map | null>(null);
 
   // Define colors based on plastic level
   const getMarkerColor = () => {
@@ -50,66 +51,56 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   };
 
   useEffect(() => {
-    // Get access token from environment variable
-    const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
-    
-    // If no token provided, show a fallback display
-    if (!mapboxToken) {
-      handleMapError();
-      console.error('Mapbox token is not defined in environment variables');
-      return;
-    }
+    if (!mapRef.current) return;
 
-    // Set the Mapbox token
-    mapboxgl.accessToken = mapboxToken;
-
-    // Initialize map only if it doesn't exist yet
-    if (!mapInstance.current && mapRef.current) {
-      try {
-        mapInstance.current = new mapboxgl.Map({
-          container: mapRef.current,
-          style: 'mapbox://styles/mapbox/satellite-streets-v12',
-          center: [longitude, latitude],
-          zoom: 13,
+    try {
+      // Create map if it doesn't exist
+      if (!mapInstance.current) {
+        // Initialize map
+        mapInstance.current = L.map(mapRef.current, {
           attributionControl: false,
-        });
+          zoomControl: false,
+        }).setView([latitude, longitude], 13);
 
-        // Add marker at the detected location
+        // Add a tile layer (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+        }).addTo(mapInstance.current);
+
+        // Add zoom control to the top-right corner
+        L.control.zoom({
+          position: 'topright'
+        }).addTo(mapInstance.current);
+
+        // Create a custom icon for the marker
         const markerColor = getMarkerColor();
         
-        // Create a custom element for the marker
-        const el = document.createElement('div');
-        el.className = 'custom-marker';
-        el.style.backgroundColor = markerColor;
-        el.style.width = '25px';
-        el.style.height = '25px';
-        el.style.borderRadius = '50%';
-        el.style.border = '3px solid white';
-        el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.3)';
+        // Add a marker at the location
+        const marker = L.circleMarker([latitude, longitude], {
+          radius: 8,
+          fillColor: markerColor,
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).addTo(mapInstance.current);
         
-        // Add pulse effect
-        const pulse = document.createElement('div');
-        pulse.className = 'pulse';
-        pulse.style.backgroundColor = markerColor;
-        el.appendChild(pulse);
-
-        // Add the marker to the map
-        new mapboxgl.Marker(el)
-          .setLngLat([longitude, latitude])
-          .addTo(mapInstance.current);
-
-        // Add navigation controls
-        mapInstance.current.addControl(
-          new mapboxgl.NavigationControl(),
-          'top-right'
-        );
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        handleMapError();
+        // Add a pulse effect around the marker (using CSS)
+        const pulseIcon = L.divIcon({
+          html: `<div class="pulse-icon" style="background-color: ${markerColor}"></div>`,
+          className: 'pulse-icon-container',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+        
+        L.marker([latitude, longitude], { icon: pulseIcon }).addTo(mapInstance.current);
+      } else {
+        // Update map view if it already exists
+        mapInstance.current.setView([latitude, longitude], 13);
       }
-    } else if (mapInstance.current) {
-      // Update map center if the map already exists
-      mapInstance.current.setCenter([longitude, latitude]);
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      handleMapError();
     }
 
     // Cleanup function
@@ -131,26 +122,38 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       <div ref={mapRef} className="w-full h-full"></div>
       <style>
         {`
-        .pulse {
-          position: absolute;
-          width: 50px;
-          height: 50px;
+        .pulse-icon-container {
+          background: transparent;
+        }
+        
+        .pulse-icon {
+          width: 30px;
+          height: 30px;
           border-radius: 50%;
+          position: absolute;
           transform: translate(-50%, -50%);
-          top: 50%;
-          left: 50%;
-          opacity: 0;
+        }
+        
+        .pulse-icon:before {
+          content: '';
+          position: absolute;
+          width: 300%;
+          height: 300%;
+          border-radius: 50%;
+          background-color: inherit;
+          opacity: 0.8;
+          left: -100%;
+          top: -100%;
           animation: pulse 2s infinite;
-          z-index: -1;
         }
         
         @keyframes pulse {
           0% {
-            transform: translate(-50%, -50%) scale(0.5);
+            transform: scale(0.3);
             opacity: 0.8;
           }
           100% {
-            transform: translate(-50%, -50%) scale(2);
+            transform: scale(1);
             opacity: 0;
           }
         }

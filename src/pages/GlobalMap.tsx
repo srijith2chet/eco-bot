@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import OceanBackground from '@/components/OceanBackground';
 import PageTransition from '@/components/PageTransition';
 import { getAllDetectionRecords } from '@/lib/gpsUtils';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 const GlobalMap = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -20,154 +20,113 @@ const GlobalMap = () => {
     
     if (!mapRef.current) return;
     
-    const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
-    
-    if (!mapboxToken) {
-      if (mapRef.current) {
-        mapRef.current.innerHTML = `
-          <div class="flex items-center justify-center h-full flex-col">
-            <p class="text-muted-foreground">Please add a Mapbox token to your .env file</p>
-            <code class="mt-2 p-2 bg-muted rounded text-sm">VITE_MAPBOX_TOKEN=your_token_here</code>
-          </div>
-        `;
-      }
-      return;
-    }
-    
-    // Set Mapbox token
-    mapboxgl.accessToken = mapboxToken;
-    
-    // Initialize map
-    const map = new mapboxgl.Map({
-      container: mapRef.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
-      center: [0, 20],
-      zoom: 1.5,
-      projection: 'globe',
+    // Initialize map with Leaflet
+    const map = L.map(mapRef.current, {
+      center: [20, 0],
+      zoom: 2,
+      minZoom: 2,
+      maxBounds: [
+        [-90, -180],
+        [90, 180]
+      ],
+      maxBoundsViscosity: 1.0,
+      attributionControl: false,
     });
+    
+    // Add a tile layer (Dark theme from CartoDB)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+    }).addTo(map);
     
     // Add navigation controls
-    map.addControl(
-      new mapboxgl.NavigationControl(),
-      'top-right'
-    );
+    L.control.zoom({
+      position: 'topright'
+    }).addTo(map);
     
-    // Set fog and other globe settings
-    map.on('style.load', () => {
-      map.setFog({
-        color: 'rgb(23, 25, 30)',
-        'high-color': 'rgb(36, 92, 223)',
-        'horizon-blend': 0.4,
-        'space-color': 'rgb(11, 11, 25)',
-        'star-intensity': 0.6
+    // Add attribution control
+    L.control.attribution({
+      position: 'bottomright'
+    }).addAttribution('© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors').addTo(map);
+    
+    // Add points from localStorage
+    const records = getAllDetectionRecords();
+    
+    if (records.length > 0) {
+      // Create heatmap data points
+      const heatData = records.map(record => {
+        // Set intensity based on plastic level
+        const intensity = record.plasticLevel === 'high' ? 1 :
+                        record.plasticLevel === 'medium' ? 0.6 : 0.3;
+                        
+        return [
+          record.coordinates.latitude,
+          record.coordinates.longitude,
+          intensity
+        ];
       });
       
-      // Add points from localStorage
-      const records = getAllDetectionRecords();
+      // Add markers for each detection point
+      records.forEach(record => {
+        const markerColor = record.plasticLevel === 'high' ? '#ea384c' :
+                          record.plasticLevel === 'medium' ? '#F97316' : '#4ade80';
+        
+        // Add a marker at the location
+        L.circleMarker([record.coordinates.latitude, record.coordinates.longitude], {
+          radius: 5,
+          fillColor: markerColor,
+          color: '#fff',
+          weight: 1.5,
+          opacity: 0.8,
+          fillOpacity: 0.7
+        }).addTo(map);
+      });
       
-      if (records.length > 0) {
-        // Prepare GeoJSON data - Fix the type to be the literal string "FeatureCollection"
-        const geojsonData = {
-          type: "FeatureCollection" as const, // Use a const assertion to ensure the type is exactly "FeatureCollection"
-          features: records.map(record => ({
-            type: "Feature" as const,
-            geometry: {
-              type: "Point" as const,
-              coordinates: [record.coordinates.longitude, record.coordinates.latitude]
-            },
-            properties: {
-              plasticLevel: record.plasticLevel,
-              timestamp: record.timestamp
-            }
-          }))
-        };
-        
-        // Add the GeoJSON source
-        map.addSource('plastic-detections', {
-          type: 'geojson',
-          data: geojsonData
-        });
-        
-        // Add heatmap layer
-        map.addLayer({
-          id: 'plastic-heat',
-          type: 'heatmap',
-          source: 'plastic-detections',
-          paint: {
-            // Increase weight based on plastic level
-            'heatmap-weight': [
-              'match',
-              ['get', 'plasticLevel'],
-              'high', 1,
-              'medium', 0.6,
-              'low', 0.3,
-              0.3
-            ],
-            'heatmap-intensity': 1.5,
-            'heatmap-color': [
-              'interpolate',
-              ['linear'],
-              ['heatmap-density'],
-              0, 'rgba(0, 0, 255, 0)',
-              0.1, 'rgba(65, 219, 167, 0.5)',
-              0.3, 'rgba(247, 214, 99, 0.7)',
-              0.6, 'rgba(241, 122, 49, 0.8)',
-              1, 'rgba(235, 56, 53, 0.9)'
-            ],
-            'heatmap-radius': 40,
-            'heatmap-opacity': 0.9
+      // Add heatmap layer if we have many points (using a conditional import)
+      if (records.length > 5) {
+        // We'll use a simple clustering for now since leaflet-heat would require additional setup
+        const markers = L.markerClusterGroup({
+          disableClusteringAtZoom: 8,
+          spiderfyOnMaxZoom: false,
+          showCoverageOnHover: false,
+          zoomToBoundsOnClick: true,
+          maxClusterRadius: 50,
+          iconCreateFunction: function(cluster) {
+            const count = cluster.getChildCount();
+            return L.divIcon({
+              html: `<div class="cluster-marker">${count}</div>`,
+              className: 'cluster-marker-container',
+              iconSize: L.point(40, 40)
+            });
           }
         });
         
-        // Add circle layer
-        map.addLayer({
-          id: 'plastic-points',
-          type: 'circle',
-          source: 'plastic-detections',
-          paint: {
-            'circle-color': [
-              'match',
-              ['get', 'plasticLevel'],
-              'high', '#ea384c',
-              'medium', '#F97316',
-              'low', '#4ade80',
-              '#4ade80'
-            ],
-            'circle-radius': 6,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': 'white',
-            'circle-opacity': 0.7
-          }
+        records.forEach(record => {
+          markers.addLayer(L.marker([record.coordinates.latitude, record.coordinates.longitude], {
+            opacity: 0.6
+          }));
         });
-      }
-      
-      setMapLoaded(true);
-    });
-    
-    // Add rotation animation
-    const secondsPerRevolution = 180;
-    let userInteracting = false;
-    let spinEnabled = true;
-    
-    function spinGlobe() {
-      if (!map) return;
-      
-      const zoom = map.getZoom();
-      if (spinEnabled && !userInteracting && zoom < 4) {
-        const center = map.getCenter();
-        center.lng -= 0.25;
-        map.easeTo({
-          center,
-          duration: 100,
-          easing: (n) => n
-        });
-        requestAnimationFrame(spinGlobe);
-      } else {
-        requestAnimationFrame(spinGlobe);
+        
+        map.addLayer(markers);
       }
     }
     
-    // Handle user interaction
+    setMapLoaded(true);
+    
+    // Simple rotation effect (moving the center of the map slowly)
+    let userInteracting = false;
+    const startLongitude = 0;
+    
+    function rotateGlobe() {
+      if (!userInteracting && map.getZoom() < 4) {
+        const center = map.getCenter();
+        center.lng = ((center.lng + 0.5) % 360) - 180;
+        map.setView(center, map.getZoom(), { animate: false });
+        setTimeout(rotateGlobe, 100);
+      } else {
+        setTimeout(rotateGlobe, 100);
+      }
+    }
+    
     map.on('mousedown', () => {
       userInteracting = true;
     });
@@ -184,8 +143,8 @@ const GlobalMap = () => {
       userInteracting = false;
     });
     
-    // Start spinning the globe
-    spinGlobe();
+    // Start the rotation
+    rotateGlobe();
     
     // Cleanup
     return () => {
@@ -265,6 +224,27 @@ const GlobalMap = () => {
           </div>
         </div>
       </PageTransition>
+      <style>
+        {`
+          .cluster-marker-container {
+            background-color: transparent;
+          }
+          
+          .cluster-marker {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(65, 219, 167, 0.8);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+          }
+        `}
+      </style>
     </>
   );
 };
