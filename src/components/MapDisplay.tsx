@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -130,7 +129,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       className
     )}>
       <div ref={mapRef} className="w-full h-full"></div>
-      <style jsx>{`
+      <style>
+        {`
         .pulse {
           position: absolute;
           width: 50px;
@@ -154,7 +154,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
             opacity: 0;
           }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };

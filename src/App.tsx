@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Results from "./pages/Results";
 import About from "./pages/About";
+import GlobalMap from "./pages/GlobalMap";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/results" element={<Results />} />
           <Route path="/about" element={<About />} />
+          <Route path="/global-map" element={<GlobalMap />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

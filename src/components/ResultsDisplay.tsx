@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface ResultsDisplayProps {
   resultImage: string | null;
@@ -75,6 +76,27 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
             </p>
           )}
         </div>
+      </div>
+
+      <div className={cn(
+        "glass-card rounded-xl p-5 flex items-center space-x-4",
+        "animate-fade-up animate-delay-400"
+      )}>
+        <div className="p-2.5 rounded-lg bg-blue-500/20">
+          <Globe className="w-5 h-5 text-blue-500" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-medium">Global Impact</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            This detection has been added to our global plastic waste map
+          </p>
+        </div>
+        <Link 
+          to="/global-map" 
+          className="text-sm text-primary hover:underline"
+        >
+          View Map
+        </Link>
       </div>
     </div>
   );
